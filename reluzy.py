@@ -108,7 +108,7 @@ class Reluzy:
         zero = Real(0)
         for s in self.relus_level:
             for r1, r2 in s:
-                l = Implies(GE(r2, zero), GE(r1, r2))
+                l = GE(r1, r2)
                 tval = self.solver.get_value(l)
                 if l.is_false():
                     lemmas.append(l)
