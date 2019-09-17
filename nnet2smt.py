@@ -69,6 +69,7 @@ class Nnet2Smt:
 
         for i, y in enumerate(self.output_vars):
             o = self.dot(self.nnet.weights[-1][i], prev_layer_result)
+            o = Plus(o, Real(float(self.nnet.biases[-1][i])))
             self.formulae.append(Equals(y, o))
 
 
