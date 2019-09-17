@@ -105,7 +105,6 @@ class Reluzy:
         
     def refine_slope_lb(self):
         lemmas = []
-        zero = Real(0)
         for s in self.relus_level:
             for r1, r2 in s:
                 l = GE(r1, r2)
