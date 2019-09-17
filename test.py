@@ -22,7 +22,7 @@ def main():
     # print(nnet2smt.relus)
     # print(nnet2smt.relus_level)
 
-    rz = Reluzy(opts.filename)
+    rz = Reluzy(opts.filename, logger)
     res = rz.solve()
     
 

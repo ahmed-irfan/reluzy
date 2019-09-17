@@ -14,8 +14,8 @@ from pysmt.shortcuts import Solver, And, Real, Max, Equals, GE, LE, Implies
 
 class Reluzy:
 
-    def __init__(self, filename):
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, filename, logger):
+        self.logger = logger
         self.nnet2smt = Nnet2Smt(filename)
         self.nnet2smt.convert(True)
         self.input_vars = self.nnet2smt.input_vars
@@ -91,6 +91,7 @@ class Reluzy:
             tval = self.solver.get_value(l)
             if l.is_false():
                 lemmas.append(l)
+                self.logger.debug('Adding %s' % l )
         return lemmas
 
     def refine_zero_neg(self):
@@ -101,6 +102,7 @@ class Reluzy:
             tval = self.solver.get_value(l)
             if l.is_false():
                 lemmas.append(l)
+                self.logger.debug('Adding %s' % l )
         return lemmas
         
     def refine_slope_lb(self):
@@ -111,6 +113,7 @@ class Reluzy:
                 tval = self.solver.get_value(l)
                 if l.is_false():
                     lemmas.append(l)
+                    self.logger.debug('Adding %s' % l )
             if lemmas:
                 break
         return lemmas
@@ -124,6 +127,7 @@ class Reluzy:
                 tval = self.solver.get_value(l)
                 if l.is_false():
                     lemmas.append(l)
+                    self.logger.debug('Adding %s' % l )
             if lemmas:
                 break
         return lemmas
