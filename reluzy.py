@@ -65,12 +65,12 @@ class Reluzy:
 
     def refine(self):
         self.logger.info('Refining')
-        lemmas = self.refine_zero_pos()
-        if not lemmas:
-            lemmas = self.refine_zero_neg()
-
+        lemmas = self.refine_zero_lb()
         if not lemmas:
             lemmas = self.refine_slope_lb()
+
+        if not lemmas:
+            lemmas = self.refine_zero_ub()
 
         if not lemmas:
             lemmas = self.refine_slope_ub()
@@ -83,7 +83,7 @@ class Reluzy:
 
         return lemmas
 
-    def refine_zero_pos(self):
+    def refine_zero_lb(self):
         lemmas = []
         zero = Real(0)
         for r1, _ in self.relus:
@@ -94,28 +94,28 @@ class Reluzy:
                 self.logger.debug('Adding %s' % l )
         return lemmas
 
-    def refine_zero_neg(self):
+    def refine_zero_ub(self):
         lemmas = []
         zero = Real(0)
-        for r1, r2 in self.relus:
-            l = Implies(LE(r2, zero), LE(r1, zero))
-            tval = self.solver.get_value(l)
-            if l.is_false():
-                lemmas.append(l)
-                self.logger.debug('Adding %s' % l )
-        return lemmas
-        
-    def refine_slope_lb(self):
-        lemmas = []
         for s in self.relus_level:
             for r1, r2 in s:
-                l = GE(r1, r2)
+                l = Implies(LE(r2, zero), LE(r1, zero))
                 tval = self.solver.get_value(l)
                 if l.is_false():
                     lemmas.append(l)
                     self.logger.debug('Adding %s' % l )
             if lemmas:
                 break
+        return lemmas
+        
+    def refine_slope_lb(self):
+        lemmas = []
+        for r1, r2 in self.relus:
+            l = GE(r1, r2)
+            tval = self.solver.get_value(l)
+            if l.is_false():
+                lemmas.append(l)
+                self.logger.debug('Adding %s' % l )
         return lemmas
        
     def refine_slope_ub(self):
