@@ -70,9 +70,9 @@ class Reluzy:
 
     def refine(self):
         self.logger.info('Refining')
-        # lemmas = self.refine_zero_lb()
-        # if not lemmas:
-        #     lemmas = self.refine_slope_lb()
+        lemmas = self.refine_zero_lb()
+        if not lemmas:
+            lemmas = self.refine_slope_lb()
 
         if not lemmas:
             lemmas = self.refine_zero_ub()
