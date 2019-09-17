@@ -79,7 +79,7 @@ class Reluzy:
             for v in self.input_vars:
                 print(v, self.solver.get_value(v))
         elif self.check_sat():
-            return False
+            return []
 
         return lemmas
 
