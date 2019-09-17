@@ -22,6 +22,7 @@ class Reluzy:
         self.output_vars = self.nnet2smt.output_vars
         self.formulae = self.nnet2smt.formulae
         self.relus = self.nnet2smt.relus
+        self.relus_level = self.nnet2smt.relus_level
         self.solver = Solver(name='yices')
         self.sat_checker = Solver(name='yices')
         self.init()
@@ -105,20 +106,26 @@ class Reluzy:
     def refine_slope_lb(self):
         lemmas = []
         zero = Real(0)
-        for r1, r2 in self.relus:
-            l = Implies(GE(r2, zero), GE(r1, r2))
-            tval = self.solver.get_value(l)
-            if l.is_false():
-                lemmas.append(l)
+        for s in self.relus_level:
+            for r1, r2 in s:
+                l = Implies(GE(r2, zero), GE(r1, r2))
+                tval = self.solver.get_value(l)
+                if l.is_false():
+                    lemmas.append(l)
+            if lemmas:
+                break
         return lemmas
        
     def refine_slope_ub(self):
         lemmas = []
         zero = Real(0)
-        for r1, r2 in self.relus:
-            l = Implies(GE(r2, zero), LE(r1, r2))
-            tval = self.solver.get_value(l)
-            if l.is_false():
-                lemmas.append(l)
+        for s in self.relus_level:
+            for r1, r2 in s:
+                l = Implies(GE(r2, zero), LE(r1, r2))
+                tval = self.solver.get_value(l)
+                if l.is_false():
+                    lemmas.append(l)
+            if lemmas:
+                break
         return lemmas
     
