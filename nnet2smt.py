@@ -37,10 +37,12 @@ class Nnet2Smt:
             y = Symbol("y%d" % i, REAL)
             self.output_vars.append(y)
         for i, m in enumerate(self.nnet.mins):
+            # normalized
             l = GE(self.input_vars[i],
                    Real((m - self.nnet.means[i])/self.nnet.ranges[i]))
             self.formulae.append(l)
         for i, m in enumerate(self.nnet.maxes):
+            # normalized
             l = LE(self.input_vars[i],
                    Real((m - self.nnet.means[i])/self.nnet.ranges[i]))
             self.formulae.append(l)
@@ -70,6 +72,9 @@ class Nnet2Smt:
         for i, y in enumerate(self.output_vars):
             o = self.dot(self.nnet.weights[-1][i], prev_layer_result)
             o = Plus(o, Real(float(self.nnet.biases[-1][i])))
+            # undo normalization
+            o = Times(o, Real(self.nnet.ranges[-1]))
+            o = Plus(o, Real(self.nnet.means[-1]))
             self.formulae.append(Equals(y, o))
 
 

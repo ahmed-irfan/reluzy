@@ -32,9 +32,14 @@ class Reluzy:
         self.sat_checker.add_assertion(And(self.formulae))
         for r1, r2 in self.relus:
             self.sat_checker.add_assertion(Equals(r1, Max(r2, Real(0))))
-        
+        #lemmas = self.refine_zero_lb(False)
+        #self.solver.add_assertion(And(lemmas))
+        #lemmas = self.refine_slope_lb(False)
+        #self.solver.add_assertion(And(lemmas))
+
     def solve(self):
         while True:
+            self.logger.info('Solving')
             res = self.solver.solve()
             if not res:
                 print('unsat')
@@ -65,9 +70,9 @@ class Reluzy:
 
     def refine(self):
         self.logger.info('Refining')
-        lemmas = self.refine_zero_lb()
-        if not lemmas:
-            lemmas = self.refine_slope_lb()
+        # lemmas = self.refine_zero_lb()
+        # if not lemmas:
+        #     lemmas = self.refine_slope_lb()
 
         if not lemmas:
             lemmas = self.refine_zero_ub()
@@ -78,20 +83,23 @@ class Reluzy:
         if not lemmas:
             for v in self.input_vars:
                 print(v, self.solver.get_value(v))
-        elif self.check_sat():
-            return []
+        #elif self.check_sat():
+        #    return []
 
         return lemmas
 
-    def refine_zero_lb(self):
+    def refine_zero_lb(self, check=True):
         lemmas = []
         zero = Real(0)
         for r1, _ in self.relus:
             l = GE(r1, zero)
-            tval = self.solver.get_value(l)
-            if l.is_false():
+            if check:
+                tval = self.solver.get_value(l)
+                if tval.is_false():
+                    lemmas.append(l)
+                    self.logger.debug('Adding %s' % l )
+            else:
                 lemmas.append(l)
-                self.logger.debug('Adding %s' % l )
         return lemmas
 
     def refine_zero_ub(self):
@@ -101,21 +109,24 @@ class Reluzy:
             for r1, r2 in s:
                 l = Implies(LE(r2, zero), LE(r1, zero))
                 tval = self.solver.get_value(l)
-                if l.is_false():
+                if tval.is_false():
                     lemmas.append(l)
                     self.logger.debug('Adding %s' % l )
             if lemmas:
                 break
         return lemmas
         
-    def refine_slope_lb(self):
+    def refine_slope_lb(self, check=True):
         lemmas = []
         for r1, r2 in self.relus:
             l = GE(r1, r2)
-            tval = self.solver.get_value(l)
-            if l.is_false():
+            if check:
+                tval = self.solver.get_value(l)
+                if tval.is_false():
+                    lemmas.append(l)
+                    self.logger.debug('Adding %s' % l )
+            else:
                 lemmas.append(l)
-                self.logger.debug('Adding %s' % l )
         return lemmas
        
     def refine_slope_ub(self):
@@ -125,7 +136,7 @@ class Reluzy:
             for r1, r2 in s:
                 l = Implies(GE(r2, zero), LE(r1, r2))
                 tval = self.solver.get_value(l)
-                if l.is_false():
+                if tval.is_false():
                     lemmas.append(l)
                     self.logger.debug('Adding %s' % l )
             if lemmas:
