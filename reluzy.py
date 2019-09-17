@@ -1,3 +1,10 @@
+#
+# Reluzy : A Lazy NN-with-Relu Solver
+# 
+# Author : Ahmed Irfan
+#          <irfan@cs.stanford.edu>
+#
+
 import logging
 
 from nnet2smt import Nnet2Smt
