@@ -8,23 +8,18 @@ def main():
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-    
+
     p = argparse.ArgumentParser()
-    p.add_argument('filename', help='input nnet filename')
+    p.add_argument('nnet', help='input nnet filename')
+    p.add_argument('violation', help='violation filename')
 
     opts = p.parse_args()
-    
-    logger.debug('Filename is ' + opts.filename)
 
-    # nnet2smt = Nnet2Smt(opts.filename)
-    # nnet2smt.print_nnet_info()
-    # nnet2smt.convert(True)
-    # print(nnet2smt.relus)
-    # print(nnet2smt.relus_level)
+    logger.debug('Filename is ' + opts.nnet)
+    logger.debug('Violation file is ' + opts.violation)
 
-    rz = Reluzy(opts.filename, logger)
+    rz = Reluzy(opts.nnet, opts.violation, logger)
     res = rz.solve()
-    
 
 if __name__ == "__main__":
     main()

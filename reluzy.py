@@ -14,9 +14,9 @@ from pysmt.shortcuts import Solver, And, Real, Max, Equals, GE, LE, Implies
 
 class Reluzy:
 
-    def __init__(self, filename, logger):
+    def __init__(self, filename, violationfile, logger):
         self.logger = logger
-        self.nnet2smt = Nnet2Smt(filename)
+        self.nnet2smt = Nnet2Smt(filename, violationfile)
         self.nnet2smt.convert(True)
         self.input_vars = self.nnet2smt.input_vars
         self.output_vars = self.nnet2smt.output_vars
