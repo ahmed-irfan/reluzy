@@ -86,14 +86,17 @@ class Nnet2Smt:
             # o = Plus(o, Real(self.nnet.means[-1]))
             self.formulae.append(Equals(y, o))
 
+        self.parse_violation(self.violation_path)
+
+
+    def add_relu_constraint(self):
         # Eager lemma encoding for relus
+        zero = Real(0)
         for r, aux in self.relus:
             self.formulae.append(Implies(GT(aux, zero),Equals(r,aux)))
             self.formulae.append(Implies(LE(aux, zero),Equals(r,zero)))
 
-
-        self.parse_violation(self.violation_path)
-
+            
     def dot(self, num_list, pysmt_list):
         assert(len(num_list) == len(pysmt_list))
         res = Real(0)
@@ -125,6 +128,7 @@ if __name__ == "__main__":
     nnet2smt = Nnet2Smt(opts.nnet, opts.violation)
     #nnet2smt.print_nnet_info()
     nnet2smt.convert(True)
+    nnet2smt.add_relu_constraint()
     f = nnet2smt.get_smt_formula()
 
     script_out = smtlibscript_from_formula(f)
