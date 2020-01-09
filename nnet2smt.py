@@ -89,14 +89,24 @@ class Nnet2Smt:
         self.parse_violation(self.violation_path)
 
 
-    def add_relu_constraint(self):
+    def add_relu_eager_constraint(self):
         # Eager lemma encoding for relus
         zero = Real(0)
         for r, aux in self.relus:
             self.formulae.append(Implies(GT(aux, zero),Equals(r,aux)))
             self.formulae.append(Implies(LE(aux, zero),Equals(r,zero)))
 
-            
+    def add_relu_maxOA_constraint(self):
+        zero = Real(0)
+        for r, aux in self.relus:
+            # MAX abstraction
+            self.formulae.append(LT(r,aux))
+            self.formulae.append(LT(r,zero))
+            # MAX - case based upper bound
+            self.formulae.append(Implies(GT(aux, zero),GT(r,aux)))
+            self.formulae.append(Implies(LE(aux, zero),GT(r,zero)))
+
+
     def dot(self, num_list, pysmt_list):
         assert(len(num_list) == len(pysmt_list))
         res = Real(0)
@@ -118,17 +128,25 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('nnet', help='input nnet filename')
     p.add_argument('violation', help='violation filename')
+    p.add_argument('abstraction', help='violation filename')
+
 
     opts = p.parse_args()
 
 
     logger.debug('Filename is ' + opts.nnet)
     logger.debug('Violation file is ' + opts.violation)
+    overapproximate_max=bool(int(opts.abstraction))
+    logger.debug('Using Max overapproximation '+ str(overapproximate_max))
 
     nnet2smt = Nnet2Smt(opts.nnet, opts.violation)
     #nnet2smt.print_nnet_info()
     nnet2smt.convert(True)
-    nnet2smt.add_relu_constraint()
+    if overapproximate_max:
+        nnet2smt.add_relu_maxOA_constraint()
+    else:
+        nnet2smt.add_relu_eager_constraint()
+
     f = nnet2smt.get_smt_formula()
 
     script_out = smtlibscript_from_formula(f)
