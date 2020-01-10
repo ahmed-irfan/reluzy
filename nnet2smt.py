@@ -100,11 +100,11 @@ class Nnet2Smt:
         zero = Real(0)
         for r, aux in self.relus:
             # MAX abstraction
-            self.formulae.append(LT(r,aux))
-            self.formulae.append(LT(r,zero))
+            self.formulae.append(GE(r,aux))
+            self.formulae.append(GE(r,zero))
             # MAX - case based upper bound
-            self.formulae.append(Implies(GT(aux, zero),GT(r,aux)))
-            self.formulae.append(Implies(LE(aux, zero),GT(r,zero)))
+            self.formulae.append(Implies(GT(aux, zero),LE(r,aux)))
+            self.formulae.append(Implies(LE(aux, zero),LE(r,zero)))
 
 
     def dot(self, num_list, pysmt_list):
