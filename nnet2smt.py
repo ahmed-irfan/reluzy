@@ -4,7 +4,7 @@ import sys
 
 from nnet import NNet
 
-from pysmt.shortcuts import Symbol, REAL, Real, GE, GT, LE, LT, Times, Plus, Equals,\
+from pysmt.shortcuts import Symbol, REAL, Real, GE, GT, LE, LT, Times, Plus, Minus, Equals,\
     Max, Function, FunctionType, FreshSymbol, And, Or, Not, Implies, Solver
 
 from pysmt.parsing import parse
@@ -65,15 +65,15 @@ class Nnet2Smt:
             for ls in range(self.nnet.layerSizes[l+1]):
                 r = self.dot(self.nnet.weights[l][ls], prev_layer_result)
                 r = Plus(r, Real(float(self.nnet.biases[l][ls])))
-                r_sum = FreshSymbol(REAL)
-                self.formulae.append(Equals(r_sum, r))
+                relu_in = FreshSymbol(REAL)
+                self.formulae.append(Equals(relu_in, r))
                 if abstract:
-                    relu_v = FreshSymbol(REAL)
-                    r = relu_v
-                    self.relus.append((relu_v, r_sum))
-                    self.relus_level[l+1].add((relu_v, r_sum))
+                    relu_out = FreshSymbol(REAL)
+                    r = relu_out
+                    self.relus.append((relu_out, relu_in))
+                    self.relus_level[l+1].add((relu_out, relu_in))
                 else:
-                    r = Max(r_sum, zero)
+                    r = Max(relu_in, zero)
                 layer_result.append(r)
             prev_layer_result = layer_result.copy()
             layer_result.clear()
@@ -92,19 +92,43 @@ class Nnet2Smt:
     def add_relu_eager_constraint(self):
         # Eager lemma encoding for relus
         zero = Real(0)
-        for r, aux in self.relus:
-            self.formulae.append(Implies(GT(aux, zero),Equals(r,aux)))
-            self.formulae.append(Implies(LE(aux, zero),Equals(r,zero)))
+        for r, relu_in in self.relus:
+            self.formulae.append(Implies(GT(relu_in, zero),Equals(r,relu_in)))
+            self.formulae.append(Implies(LE(relu_in, zero),Equals(r,zero)))
 
     def add_relu_maxOA_constraint(self):
         zero = Real(0)
-        for r, aux in self.relus:
+        for relu_out, relu_in in self.relus:
             # MAX abstraction
-            self.formulae.append(GE(r,aux))
-            self.formulae.append(GE(r,zero))
+            self.formulae.append(GE(relu_out,relu_in))
+            self.formulae.append(GE(relu_out,zero))
             # MAX - case based upper bound
-            self.formulae.append(Implies(GT(aux, zero),LE(r,aux)))
-            self.formulae.append(Implies(LE(aux, zero),LE(r,zero)))
+            self.formulae.append(Implies(GT(relu_in, zero),LE(relu_out,relu_in)))
+            self.formulae.append(Implies(LE(relu_in, zero),LE(relu_out,zero)))
+
+    def add_relu_simplex_friendly_eager(self):
+        # Eager lemma encoding for relus
+        zero = Real(0)
+        for relu_out, relu_in in self.relus:
+            #Introduce f = relu_out - relu_in
+            f = FreshSymbol(REAL)
+            self.formulae.append(Equals(f, Minus(relu_out,relu_in)))
+            self.formulae.append(Implies(GT(relu_in, zero),Equals(f,zero)))
+            self.formulae.append(Implies(LE(relu_in, zero),Equals(relu_out,zero)))
+
+
+    def add_relu_simplex_friendly_OA(self):
+        zero = Real(0)
+        for relu_out, relu_in in self.relus:
+            #Introduce f = relu_out - relu_in
+            f = FreshSymbol(REAL)
+            self.formulae.append(Equals(f, Minus(relu_out,relu_in)))
+            # MAX abstraction
+            self.formulae.append(GE(f,zero))
+            self.formulae.append(GE(relu_out,zero))
+            # MAX - case based upper bound
+            self.formulae.append(Implies(GT(relu_in, zero),LE(f, zero)))
+            self.formulae.append(Implies(LE(relu_in, zero),LE(relu_out,zero)))
 
 
     def dot(self, num_list, pysmt_list):
@@ -128,7 +152,8 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument('nnet', help='input nnet filename')
     p.add_argument('violation', help='violation filename')
-    p.add_argument('abstraction', help='violation filename')
+    p.add_argument('max_oa', help='Over-approximate max in ReLUs')
+    p.add_argument('simplex_friendly', help='Simplex-friendly encoding')
 
 
     opts = p.parse_args()
@@ -136,16 +161,24 @@ if __name__ == "__main__":
 
     logger.debug('Filename is ' + opts.nnet)
     logger.debug('Violation file is ' + opts.violation)
-    overapproximate_max=bool(int(opts.abstraction))
+    overapproximate_max=bool(int(opts.max_oa))
     logger.debug('Using Max overapproximation '+ str(overapproximate_max))
+    simplex_friendly=bool(int(opts.simplex_friendly))
+    logger.debug('Using Simplex-friendly encoding'+ str(simplex_friendly))
 
     nnet2smt = Nnet2Smt(opts.nnet, opts.violation)
     #nnet2smt.print_nnet_info()
     nnet2smt.convert(True)
     if overapproximate_max:
-        nnet2smt.add_relu_maxOA_constraint()
+        if simplex_friendly:
+            nnet2smt.add_relu_simplex_friendly_OA()
+        else:
+            nnet2smt.add_relu_maxOA_constraint()
     else:
-        nnet2smt.add_relu_eager_constraint()
+       if simplex_friendly:
+           nnet2smt.add_relu_simplex_friendly_eager()
+       else:
+           nnet2smt.add_relu_eager_constraint()
 
     f = nnet2smt.get_smt_formula()
 
